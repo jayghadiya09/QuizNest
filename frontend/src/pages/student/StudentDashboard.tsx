@@ -206,10 +206,17 @@ export const StudentDashboard: React.FC = () => {
                           </span>
                         ) : (
                           <>
-                            <div className={`text-sm font-extrabold ${isPassing ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {att.score}/{att.maxScore}
+                            <div className="flex items-center gap-1.5 justify-end">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${isPassing ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                {isPassing ? 'Pass' : 'Fail'}
+                              </span>
+                              <div className={`text-sm font-extrabold ${isPassing ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {att.score}/{att.maxScore}
+                              </div>
                             </div>
-                            <div className="text-[9px] text-slate-400">({percentage}%)</div>
+                            <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">
+                              Scored {percentage}% (Required: {att.templateId?.passingPercentage ?? 50}%)
+                            </div>
                           </>
                         )}
                       </div>

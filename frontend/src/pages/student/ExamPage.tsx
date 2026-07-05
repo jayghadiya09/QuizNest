@@ -40,6 +40,7 @@ export const ExamPage: React.FC = () => {
   const [tabSwitches, setTabSwitches] = useState(0);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertType, setAlertType] = useState<'TAB_SWITCH' | 'WINDOW_BLUR' | null>(null);
+  const [currentWarningNum, setCurrentWarningNum] = useState(0);
 
   // Time remaining (seconds)
   const [timeLeft, setTimeLeft] = useState(0);
@@ -388,6 +389,7 @@ export const ExamPage: React.FC = () => {
       }
 
       if (nextSwitches <= 2) {
+        setCurrentWarningNum(nextSwitches);
         setAlertType(alertTypeStr);
         setShowAlertModal(true);
       }
@@ -680,10 +682,11 @@ export const ExamPage: React.FC = () => {
     );
   }
 
-  // Result Summary Panel
   if (result) {
     const percentage = result.maxScore > 0 ? Math.round((result.score / result.maxScore) * 100) : 0;
     const isDisqualified = (result as any).cheatingDetected === true;
+    const passPercent = (result as any).templateId?.passingPercentage ?? 50;
+    const isPassing = !isDisqualified && percentage >= passPercent;
 
     return (
       <div className="max-w-lg mx-auto my-12 p-8 glass-panel rounded-2xl text-center space-y-6 relative overflow-hidden text-xs">
@@ -726,14 +729,14 @@ export const ExamPage: React.FC = () => {
             <div className={`text-xl font-black mt-1 ${isDisqualified ? 'text-rose-500' : 'text-white'}`}>
               {result.score} / {result.maxScore}
             </div>
-            <div className="text-[10px] text-slate-400">({isDisqualified ? 0 : percentage}%)</div>
+            <div className="text-[10px] text-slate-400">({isDisqualified ? 0 : percentage}% score, required {passPercent}%)</div>
           </div>
-          <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Warden Logs</div>
-            <div className="text-xl font-black text-white mt-1">
-              {result.warningsCount}
+          <div className={`${isDisqualified ? 'bg-rose-500/5 border-rose-500/10' : isPassing ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-rose-500/5 border-rose-500/10'} p-4 rounded-xl border`}>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</div>
+            <div className={`text-xl font-black mt-1 ${isDisqualified ? 'text-rose-500' : isPassing ? 'text-emerald-450 font-black' : 'text-rose-500'}`}>
+              {isDisqualified ? 'DISQUALIFIED' : isPassing ? 'PASSED' : 'FAILED'}
             </div>
-            <div className="text-[10px] text-slate-400">Suspicion Flags Logged</div>
+            <div className="text-[10px] text-slate-400">{isDisqualified ? 'Security violations' : isPassing ? 'Exam cleared successfully' : 'Below passing score'}</div>
           </div>
         </div>
 
@@ -982,12 +985,14 @@ export const ExamPage: React.FC = () => {
               <h3 className="text-xl font-extrabold text-white">Security Flag Logged</h3>
               <p className="text-slate-450 leading-relaxed font-semibold">
                 {alertType === 'TAB_SWITCH' 
-                  ? `Tab Switch: Warning ${tabSwitches} of 2.` 
+                  ? `Tab Switch: Warning ${currentWarningNum} of 2 (Strike ${currentWarningNum}).` 
                   : 'We detected that you lost focus on the test window.'}
               </p>
               <p className="text-rose-450 font-bold bg-rose-500/10 py-1.5 px-3 rounded-lg border border-rose-500/20 inline-block mt-2">
                 {alertType === 'TAB_SWITCH'
-                  ? 'WARNING: Swapping browser tabs once more will disqualify you and submit a 0 mark result!'
+                  ? (currentWarningNum === 1 
+                      ? 'WARNING: Swapping browser tabs again will trigger your final Warning (2 of 2).' 
+                      : 'CRITICAL WARNING: Swapping browser tabs once more will disqualify you and submit a 0 mark result!')
                   : 'This event has been logged to your exam audit records.'}
               </p>
             </div>

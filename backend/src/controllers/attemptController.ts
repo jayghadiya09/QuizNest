@@ -94,7 +94,8 @@ export const startAttempt = async (req: AuthRequest, res: Response) => {
       timeLeft: timeLeftSeconds,
       questions: formattedQuestions,
       title: template.title,
-      description: template.description
+      description: template.description,
+      passingPercentage: template.passingPercentage
     });
   } catch (error: any) {
     return res.status(500).json({ message: error.message || 'Server error starting attempt' });
@@ -241,17 +242,12 @@ export const submitAttempt = async (req: AuthRequest, res: Response) => {
     // Remove the instance document as it is no longer required (keeps database clean)
     await ExamInstance.findByIdAndDelete(attempt.examInstanceId);
 
+    // Populate templateId so that the frontend has the passingPercentage and title info immediately
+    await attempt.populate('templateId', 'title duration passingPercentage');
+
     return res.json({
       message: isDisqualified ? 'Exam terminated due to cheating disqualification' : 'Exam submitted and graded successfully',
-      attempt: {
-        id: attempt._id,
-        score: attempt.score,
-        maxScore: attempt.maxScore,
-        warningsCount: attempt.warningsCount,
-        tabSwitchesCount: attempt.tabSwitchesCount,
-        cheatingDetected: attempt.cheatingDetected,
-        completedAt: attempt.completedAt
-      }
+      attempt
     });
   } catch (error: any) {
     console.error('Submission Error:', error);
@@ -284,16 +280,11 @@ export const getTeacherResults = async (req: AuthRequest, res: Response) => {
 
     if (templateId) {
       filter.templateId = templateId;
-    } else {
-      // Find templates created by this teacher
-      const templates = await ExamTemplate.find({ createdBy: req.user?.id }).select('_id');
-      const ids = templates.map((t) => t._id);
-      filter.templateId = { $in: ids };
     }
 
     const attempts = await Attempt.find(filter)
       .populate('studentId', 'name email')
-      .populate('templateId', 'title duration')
+      .populate('templateId', 'title duration passingPercentage')
       .sort({ completedAt: -1 });
 
     return res.json(attempts);
