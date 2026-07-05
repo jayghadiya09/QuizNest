@@ -15,6 +15,7 @@ interface ExamTemplate {
   subjectId: Subject | null;
   duration: number;
   maxAttempts: number;
+  passingPercentage?: number;
   createdBy: {
     name: string;
     email: string;
@@ -149,8 +150,13 @@ export const StudentDashboard: React.FC = () => {
                     </div>
 
                     <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                      <div className="text-[10px] text-slate-500">
-                        Attempts: <span className="text-slate-300 font-medium">{pastAttemptsCount}/{template.maxAttempts}</span>
+                      <div className="text-[10px] text-slate-500 flex gap-3">
+                        <span>
+                          Attempts: <span className="text-slate-300 font-medium">{pastAttemptsCount}/{template.maxAttempts}</span>
+                        </span>
+                        <span className="border-l border-slate-800 pl-3">
+                          Passing: <span className="text-slate-350 font-black">{template.passingPercentage ?? 50}%</span>
+                        </span>
                       </div>
                       
                       {exceeded ? (
