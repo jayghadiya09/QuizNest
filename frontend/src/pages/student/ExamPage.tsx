@@ -192,7 +192,7 @@ export const ExamPage: React.FC = () => {
   useEffect(() => {
     if (!attemptId || !user) return;
 
-    socketRef.current = io('http://localhost:5001');
+    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5001');
 
     socketRef.current.emit('join-exam', {
       studentId: user.id,

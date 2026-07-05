@@ -77,7 +77,7 @@ export const LiveMonitor: React.FC = () => {
       }
     ]);
 
-    socketRef.current = io('http://localhost:5001');
+    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5001');
 
     socketRef.current.on('connect', () => {
       setIsConnected(true);
