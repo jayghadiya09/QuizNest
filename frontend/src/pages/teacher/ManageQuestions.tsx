@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Trash2, Edit2, Filter, Search, X, CheckSquare, Square } from 'lucide-react';
+import { Trash2, Edit2, Filter, Search, X, CheckSquare, Square, Sparkles } from 'lucide-react';
 
 interface Subject {
   _id: string;
@@ -47,6 +47,119 @@ export const ManageQuestions: React.FC = () => {
 
   // Short Answer text input helper
   const [shortAnswerText, setShortAnswerText] = useState('');
+
+  // AI Modal States
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiDifficulty, setAiDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
+  const [aiType, setAiType] = useState<'SINGLE_MCQ' | 'MULTI_MCQ' | 'SHORT_ANSWER'>('SINGLE_MCQ');
+  const [aiCount, setAiCount] = useState(3);
+  const [generating, setGenerating] = useState(false);
+  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleGenerateAI = async () => {
+    if (!aiTopic.trim()) return;
+    setGenerating(true);
+    setAiError(null);
+    try {
+      const res = await api.post('/questions/generate-ai', {
+        topic: aiTopic.trim(),
+        difficulty: aiDifficulty,
+        type: aiType,
+        count: aiCount
+      });
+      setGeneratedQuestions(res.data);
+    } catch (err: any) {
+      setAiError(err.response?.data?.message || err.message || 'AI Generation failed. Ensure GEMINI_API_KEY is configured.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleUseInForm = (q: any) => {
+    setType(q.type);
+    setDifficulty(q.difficulty);
+    setTagsInput(q.tags ? q.tags.join(', ') : '');
+    setQuestionText(q.questionText);
+    
+    const calculatedMarks = q.difficulty === 'EASY' ? 1 : q.difficulty === 'MEDIUM' ? 2 : 3;
+    setMarks(q.marks || calculatedMarks);
+
+    if (q.type === 'SHORT_ANSWER') {
+      setOptions(['', '', '', '']);
+      setCorrectAnswersList(q.correctAnswers);
+    } else {
+      const filledOptions = [...q.options];
+      while (filledOptions.length < 4) {
+        filledOptions.push('');
+      }
+      setOptions(filledOptions);
+      setCorrectAnswersList(q.correctAnswers);
+    }
+    
+    setShowAIModal(false);
+    setGeneratedQuestions([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveSingleAI = async (q: any, indexToRemove: number) => {
+    if (!selectedSubjectId) {
+      setAiError('Please select a subject category in the main form first.');
+      return;
+    }
+    try {
+      const calculatedMarks = q.difficulty === 'EASY' ? 1 : q.difficulty === 'MEDIUM' ? 2 : 3;
+      const payload = {
+        type: q.type,
+        subjectId: selectedSubjectId,
+        difficulty: q.difficulty,
+        tags: q.tags || [],
+        questionText: q.questionText.trim(),
+        options: q.type === 'SHORT_ANSWER' ? [] : q.options,
+        correctAnswers: q.correctAnswers,
+        marks: q.marks || calculatedMarks
+      };
+
+      await api.post('/questions', payload);
+      setGeneratedQuestions((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+      fetchData();
+    } catch (err: any) {
+      setAiError(err.response?.data?.message || err.message || 'Failed to save question');
+    }
+  };
+
+  const handleSaveAllAI = async () => {
+    if (!selectedSubjectId) {
+      setAiError('Please select a subject category in the main form first.');
+      return;
+    }
+    setGenerating(true);
+    try {
+      for (const q of generatedQuestions) {
+        const calculatedMarks = q.difficulty === 'EASY' ? 1 : q.difficulty === 'MEDIUM' ? 2 : 3;
+        const payload = {
+          type: q.type,
+          subjectId: selectedSubjectId,
+          difficulty: q.difficulty,
+          tags: q.tags || [],
+          questionText: q.questionText.trim(),
+          options: q.type === 'SHORT_ANSWER' ? [] : q.options,
+          correctAnswers: q.correctAnswers,
+          marks: q.marks || calculatedMarks
+        };
+        await api.post('/questions', payload);
+      }
+      
+      setShowAIModal(false);
+      setGeneratedQuestions([]);
+      fetchData();
+    } catch (err: any) {
+      setAiError(err.response?.data?.message || err.message || 'Failed to save all questions');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -223,9 +336,23 @@ export const ManageQuestions: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white">Question Pool Editor</h1>
-        <p className="text-sm text-slate-400 mt-1">Manage individual questions in your bank covering multiple test types.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-white">Question Pool Editor</h1>
+          <p className="text-sm text-slate-400 mt-1">Manage individual questions in your bank covering multiple test types.</p>
+        </div>
+        <button
+          onClick={() => {
+            setShowAIModal(true);
+            setAiTopic('');
+            setGeneratedQuestions([]);
+            setAiError(null);
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all font-semibold text-sm border border-indigo-500/30 active:scale-95 duration-150 self-start sm:self-center"
+        >
+          <Sparkles className="w-4 h-4 animate-pulse" />
+          Generate with AI ⚡
+        </button>
       </div>
 
       {error && (
@@ -559,6 +686,222 @@ export const ManageQuestions: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {showAIModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                  <Sparkles className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">AI Question Generator</h2>
+                  <p className="text-xs text-slate-400">Create high-quality questions instantly using Google Gemini AI</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAIModal(false);
+                  setGeneratedQuestions([]);
+                  setAiError(null);
+                }}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-slate-300">
+              {aiError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs">
+                  {aiError}
+                </div>
+              )}
+
+              {generatedQuestions.length === 0 ? (
+                /* Input Form */
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-slate-400 font-semibold uppercase tracking-wider text-xs block">
+                      Topic / Subject Area
+                    </label>
+                    <input
+                      type="text"
+                      value={aiTopic}
+                      onChange={(e) => setAiTopic(e.target.value)}
+                      placeholder="E.g., CSS Flexbox, JavaScript Promises, TCP/IP handshake"
+                      className="w-full px-4 py-2.5 border border-slate-800 rounded-xl bg-slate-950 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-semibold uppercase tracking-wider text-xs block">
+                        Question Type
+                      </label>
+                      <select
+                        value={aiType}
+                        onChange={(e) => setAiType(e.target.value as any)}
+                        className="w-full px-3 py-2.5 border border-slate-800 rounded-xl bg-slate-950 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                      >
+                        <option value="SINGLE_MCQ">Single Choice MCQ</option>
+                        <option value="MULTI_MCQ">Multiple Choice MCQ</option>
+                        <option value="SHORT_ANSWER">Short Answer</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-semibold uppercase tracking-wider text-xs block">
+                        Difficulty
+                      </label>
+                      <select
+                        value={aiDifficulty}
+                        onChange={(e) => setAiDifficulty(e.target.value as any)}
+                        className="w-full px-3 py-2.5 border border-slate-800 rounded-xl bg-slate-950 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                      >
+                        <option value="EASY">Easy (1 Mark)</option>
+                        <option value="MEDIUM">Medium (2 Marks)</option>
+                        <option value="HARD">Hard (3 Marks)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-semibold uppercase tracking-wider text-xs block">
+                        Number of Questions
+                      </label>
+                      <select
+                        value={aiCount}
+                        onChange={(e) => setAiCount(parseInt(e.target.value))}
+                        className="w-full px-3 py-2.5 border border-slate-800 rounded-xl bg-slate-950 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                      >
+                        <option value="1">1 Question</option>
+                        <option value="3">3 Questions</option>
+                        <option value="5">5 Questions</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGenerateAI}
+                    disabled={generating || !aiTopic.trim()}
+                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-6 active:scale-95 duration-100"
+                  >
+                    {generating ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Generating Questions...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Generate Questions
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                /* Preview and Import List */
+                <div className="space-y-6">
+                  <p className="text-xs text-slate-400">Preview generated questions below. Click "Add to Pool" to import them, or "Use in Form" to fine-tune manually.</p>
+                  <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-1">
+                    {generatedQuestions.map((q, idx) => (
+                      <div key={idx} className="p-4 border border-slate-800 bg-slate-950/40 rounded-xl space-y-3 relative group">
+                        <div className="flex justify-between items-start gap-4">
+                          <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 rounded-md text-[10px] font-bold tracking-wide uppercase">
+                            {q.type.replace('_', ' ')}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleUseInForm(q)}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition"
+                            >
+                              Use in Form
+                            </button>
+                            <button
+                              onClick={() => handleSaveSingleAI(q, idx)}
+                              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition"
+                            >
+                              Add to Pool
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="text-sm font-bold text-white leading-relaxed">{q.questionText}</p>
+                        
+                        {q.type !== 'SHORT_ANSWER' && q.options && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                            {q.options.map((opt: string, optIdx: number) => {
+                              const isCorrect = q.correctAnswers.includes(String(optIdx));
+                              return (
+                                <div
+                                  key={optIdx}
+                                  className={`p-2 rounded-lg border text-xs flex items-center justify-between ${
+                                    isCorrect
+                                      ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
+                                      : 'bg-slate-900/20 border-slate-800 text-slate-400'
+                                  }`}
+                                >
+                                  <span>{opt}</span>
+                                  {isCorrect && (
+                                    <span className="text-[10px] font-bold uppercase text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                      Correct
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {q.type === 'SHORT_ANSWER' && (
+                          <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-1.5 items-center">
+                            <span className="font-semibold text-slate-350">Acceptable Answers:</span>
+                            {q.correctAnswers.map((ans: string, ansIdx: number) => (
+                              <span key={ansIdx} className="bg-slate-800 border border-slate-700 text-white px-2 py-0.5 rounded">
+                                {ans}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {q.tags && q.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {q.tags.map((tag: string) => (
+                              <span key={tag} className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-4 border-t border-slate-800">
+                    <button
+                      onClick={() => {
+                        setGeneratedQuestions([]);
+                      }}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition text-xs"
+                    >
+                      Generate More
+                    </button>
+                    <button
+                      onClick={handleSaveAllAI}
+                      className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition text-xs shadow-lg shadow-emerald-500/10"
+                    >
+                      Add All to Pool
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

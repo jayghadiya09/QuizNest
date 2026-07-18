@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import Question from '../models/Question';
 import Subject from '../models/Subject';
+import { generateQuestionsFromAI } from '../services/aiService';
 
 // @desc    Get questions with filters
 // @route   GET /questions
@@ -240,5 +241,37 @@ export const importQuestions = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     return res.status(500).json({ message: error.message || 'Server error during import' });
+  }
+};
+
+// @desc    Generate questions using AI (Gemini)
+// @route   POST /questions/generate-ai
+// @access  Private (Teacher/Admin)
+export const generateAIQuestions = async (req: AuthRequest, res: Response) => {
+  const { topic, difficulty, type, count } = req.body;
+
+  try {
+    if (!topic) {
+      return res.status(400).json({ message: 'Topic is required for AI generation' });
+    }
+
+    const questionType = type || 'SINGLE_MCQ';
+    const questionDifficulty = difficulty || 'MEDIUM';
+    const questionCount = count ? parseInt(count) : 3;
+
+    if (isNaN(questionCount) || questionCount < 1 || questionCount > 10) {
+      return res.status(400).json({ message: 'Count must be a number between 1 and 10' });
+    }
+
+    const generated = await generateQuestionsFromAI(
+      topic,
+      questionDifficulty,
+      questionType,
+      questionCount
+    );
+
+    return res.json(generated);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message || 'Server error during AI generation' });
   }
 };

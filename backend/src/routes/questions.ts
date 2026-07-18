@@ -4,7 +4,8 @@ import {
   createQuestion,
   updateQuestion,
   deleteQuestion,
-  importQuestions
+  importQuestions,
+  generateAIQuestions
 } from '../controllers/questionController';
 import { requireAuth, requireRole } from '../middleware/auth';
 
@@ -18,5 +19,6 @@ router.post('/', createQuestion);
 router.put('/:id', updateQuestion);
 router.delete('/:id', deleteQuestion);
 router.post('/import', importQuestions);
+router.post('/generate-ai', generateAIQuestions);
 
 export default router;
