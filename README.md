@@ -2,7 +2,8 @@
 
 > **Secure, real-time examination, built for integrity.**
 
-QuizNest is a production-grade, Zero-Trust online examination orchestration system designed for universities, coaching institutes, and organizations requiring airtight academic integrity, real-time monitoring, and a modern user experience.
+Built an AI-powered online examination platform with Student, Teacher, and Admin portals, featuring AI-assisted question generation, role-based authentication, and exam management.
+Implemented JWT-based authentication, automatic evaluation, result tracking, responsive dashboards, and REST APIs to deliver a secure, scalable, and user-friendly examination experience.
 
 ---
 
