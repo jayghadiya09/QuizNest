@@ -666,21 +666,46 @@ export const ExamPage: React.FC = () => {
     );
   }
 
+  const handleResetAndRetake = async () => {
+    try {
+      await api.delete(`/attempts/reset/${templateId}`);
+    } catch (err) {
+      const allAttempts = JSON.parse(localStorage.getItem('qn_db_attempts') || '[]');
+      const currentUser = JSON.parse(localStorage.getItem('qn_user') || '{}');
+      const filtered = allAttempts.filter((att: any) => {
+        const attTempId = att.templateId?._id || att.templateId;
+        const attStudId = att.studentId;
+        return !(attTempId === templateId && (attStudId === currentUser?.id || !attStudId));
+      });
+      localStorage.setItem('qn_db_attempts', JSON.stringify(filtered));
+    }
+    window.location.reload();
+  };
+
   if (error || questions.length === 0) {
     return (
       <div className="max-w-md mx-auto mt-12 p-6 glass-panel rounded-2xl text-center space-y-4">
         <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
         <h2 className="text-xl font-bold text-white">Access Violation / Error</h2>
         <p className="text-xs text-slate-400">{error || 'Could not launch exam session.'}</p>
-        <button
-          onClick={() => navigate('/student')}
-          className="py-2 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-colors"
-        >
-          Return to Dashboard
-        </button>
+        <div className="flex flex-col gap-2 pt-2">
+          <button
+            onClick={handleResetAndRetake}
+            className="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-brand-600/20"
+          >
+            Reset Attempts & Retake Test
+          </button>
+          <button
+            onClick={() => navigate('/student')}
+            className="w-full py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
+
 
   if (result) {
     const percentage = result.maxScore > 0 ? Math.round((result.score / result.maxScore) * 100) : 0;

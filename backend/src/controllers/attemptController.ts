@@ -292,3 +292,18 @@ export const getTeacherResults = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 };
+
+// @desc    Reset student attempt history for an exam template
+// @route   DELETE /attempts/reset/:templateId
+// @access  Private
+export const resetStudentAttempts = async (req: AuthRequest, res: Response) => {
+  try {
+    const { templateId } = req.params;
+    const studentId = req.user?.id;
+    await Attempt.deleteMany({ studentId, templateId });
+    return res.json({ message: 'Attempts reset successfully' });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+

@@ -328,6 +328,20 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       return { attempt: newAtt, ...newAtt };
     }
 
+    if (method === 'DELETE' && cleanPath.includes('/reset/')) {
+      const templateId = cleanPath.split('/').pop();
+      const attempts = getStorageItem('qn_db_attempts', []);
+      const currentUser = getStorageItem('qn_user', null);
+      const filtered = attempts.filter((att: any) => {
+        const attTempId = att.templateId?._id || att.templateId;
+        const attStudId = att.studentId;
+        return !(attTempId === templateId && (attStudId === currentUser?.id || !attStudId));
+      });
+      setStorageItem('qn_db_attempts', filtered);
+      return { message: 'Attempts reset successfully' };
+    }
+
+
     const allAttempts = getStorageItem('qn_db_attempts', []);
     const currentUser = getStorageItem('qn_user', null);
 
