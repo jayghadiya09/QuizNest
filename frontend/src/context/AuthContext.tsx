@@ -290,21 +290,40 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const attempts = getStorageItem('qn_db_attempts', []);
       const exams = getStorageItem('qn_db_exams', DEFAULT_EXAMS);
       const targetExam = exams.find((e: any) => e._id === templateId) || DEFAULT_EXAMS[0];
-
       const currentUser = getStorageItem('qn_user', null);
-      const pastAttempts = attempts.filter((att: any) => 
-        (att.templateId?._id === templateId || att.templateId === templateId) &&
-        (att.studentId === currentUser?.id || !att.studentId) &&
-        (att.status === 'COMPLETED' || att.completedAt || att.score !== undefined)
-      );
+      const studentId = currentUser?.id || 'usr_student';
+
+      const pastAttempts = attempts.filter((att: any) => {
+        const attTempId = att.templateId?._id || att.templateId;
+        const attStudId = att.studentId;
+        const matchesTemp = attTempId === templateId || attTempId === 'exam_101';
+        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
+        return matchesTemp && matchesStud;
+      });
+
       const maxAttempts = targetExam?.maxAttempts || 3;
 
       if (pastAttempts.length >= maxAttempts) {
         throw new Error(`Maximum attempt limit of ${maxAttempts} reached for this examination.`);
       }
 
+      const newAttId = `att_${Date.now()}`;
+      const newAttemptRecord = {
+        _id: newAttId,
+        studentId: studentId,
+        templateId: { _id: templateId, title: targetExam?.title || 'Computer Science Fundamentals Exam', duration: targetExam?.duration || 30, passingPercentage: 50 },
+        score: 0,
+        maxScore: 3,
+        status: 'IN_PROGRESS',
+        startedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+
+      attempts.unshift(newAttemptRecord);
+      setStorageItem('qn_db_attempts', attempts);
+
       return {
-        attemptId: `att_${Date.now()}`,
+        attemptId: newAttId,
         timeLeft: (targetExam?.duration || 30) * 60,
         questions: targetExam?.questions || DEFAULT_QUESTIONS,
         title: targetExam?.title || 'Computer Science Fundamentals Exam',
@@ -316,16 +335,6 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const currentUser = getStorageItem('qn_user', null);
       const studentId = currentUser?.id || 'usr_student';
       const targetTempId = bodyData?.templateId || 'exam_101';
-
-      // Clean up IN_PROGRESS draft attempts for this student & template so each finished test adds +1 completed attempt
-      const cleanedAttempts = attempts.filter((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        const attStudId = att.studentId;
-        const matchesTemplate = attTempId === targetTempId || attTempId === 'exam_101';
-        const matchesStudent = attStudId === studentId || !attStudId || attStudId === 'usr_student';
-        return !(matchesTemplate && matchesStudent && att.status === 'IN_PROGRESS');
-      });
-
 
       const questionsList = getStorageItem('qn_db_questions', DEFAULT_QUESTIONS);
       const responsesList = bodyData?.responses || [];
@@ -346,8 +355,17 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
         }
       });
 
-      const newAtt = {
-        _id: `att_${Date.now()}`,
+      // Update existing IN_PROGRESS attempt or replace latest
+      let existingIndex = attempts.findIndex((att: any) => {
+        const attTempId = att.templateId?._id || att.templateId;
+        const attStudId = att.studentId;
+        const matchesTemp = attTempId === targetTempId || attTempId === 'exam_101';
+        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
+        return matchesTemp && matchesStud && att.status === 'IN_PROGRESS';
+      });
+
+      const updatedAttempt = {
+        _id: existingIndex >= 0 ? attempts[existingIndex]._id : `att_${Date.now()}`,
         studentId: studentId,
         templateId: { _id: targetTempId, title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
         score: earnedScore,
@@ -356,13 +374,20 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
         warningsCount: bodyData?.warningsCount || 0,
         tabSwitchesCount: bodyData?.tabSwitchesCount || 0,
         completedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        createdAt: existingIndex >= 0 ? attempts[existingIndex].createdAt : new Date().toISOString(),
         ...bodyData
       };
-      cleanedAttempts.unshift(newAtt);
-      setStorageItem('qn_db_attempts', cleanedAttempts);
-      return { attempt: newAtt, ...newAtt };
+
+      if (existingIndex >= 0) {
+        attempts[existingIndex] = updatedAttempt;
+      } else {
+        attempts.unshift(updatedAttempt);
+      }
+
+      setStorageItem('qn_db_attempts', attempts);
+      return { attempt: updatedAttempt, ...updatedAttempt };
     }
+
 
 
 
