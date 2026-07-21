@@ -439,7 +439,7 @@ export const TeacherDashboard: React.FC = () => {
                       <Settings className="w-3.5 h-3.5 text-slate-500" />
                       {t.selectionMode === 'MANUAL'
                         ? `${t.manualQuestions?.length || 0} Qs`
-                        : `${t.difficultyDistribution.easyCount + t.difficultyDistribution.mediumCount + t.difficultyDistribution.hardCount} Qs`
+                        : `${(t.difficultyDistribution?.easyCount || 0) + (t.difficultyDistribution?.mediumCount || 0) + (t.difficultyDistribution?.hardCount || 0)} Qs`
                       }
                     </span>
                   </div>

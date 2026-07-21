@@ -52,15 +52,21 @@ const DEFAULT_EXAMS = [
   {
     _id: 'exam_101',
     title: 'Computer Science Fundamentals Exam',
+    description: 'Core aspects of software engineering, algorithms, and data structures.',
     subjectId: DEFAULT_SUBJECT,
     durationMinutes: 30,
     duration: 30,
     totalMarks: 3,
     passingMarks: 2,
+    passingPercentage: 50,
     questions: DEFAULT_QUESTIONS,
     maxAttempts: 3,
-    startTime: new Date(Date.now() - 3600000).toISOString(),
-    endTime: new Date(Date.now() + 86400000).toISOString(),
+    availabilityStart: new Date(Date.now() - 3600000).toISOString(),
+    availabilityEnd: new Date(Date.now() + 86400000).toISOString(),
+    difficultyDistribution: { easyCount: 1, mediumCount: 1, hardCount: 0 },
+    negativeMarkingRules: { enabled: false, penalty: 0.25 },
+    randomizationSettings: { shuffleQuestions: true, shuffleOptions: true },
+    selectionMode: 'AUTOMATIC',
     isActive: true,
     createdBy: { name: 'Demo Teacher', email: 'teacher@quiznest.com' }
   }
