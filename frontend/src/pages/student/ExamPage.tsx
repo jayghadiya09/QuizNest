@@ -680,20 +680,37 @@ export const ExamPage: React.FC = () => {
   }
 
   if (error || questions.length === 0) {
+    const isLimitReached = error?.toLowerCase().includes('attempt limit') || error?.toLowerCase().includes('maximum attempt');
     return (
-      <div className="max-w-md mx-auto mt-12 p-6 glass-panel rounded-2xl text-center space-y-4">
-        <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
-        <h2 className="text-xl font-bold text-white">Access Violation / Error</h2>
-        <p className="text-xs text-slate-400">{error || 'Could not launch exam session.'}</p>
-        <button
-          onClick={() => navigate('/student')}
-          className="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-brand-600/20"
-        >
-          Return to Dashboard
-        </button>
+      <div className="max-w-lg mx-auto mt-16 p-8 glass-panel rounded-3xl text-center space-y-6 border border-rose-500/20 shadow-2xl">
+        <div className="w-14 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
+          <AlertTriangle className="w-7 h-7" />
+        </div>
+        <div>
+          <h2 className="text-xl font-extrabold text-white">
+            {isLimitReached ? 'Maximum Attempts Reached' : 'Access Violation / Error'}
+          </h2>
+          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+            {error || 'Could not launch exam session.'}
+          </p>
+          {isLimitReached && (
+            <p className="text-[11px] text-slate-500 mt-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              💡 If you require an additional attempt, please request your instructor to reset attempts or increase the limit from the Teacher Dashboard.
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            onClick={() => navigate('/student')}
+            className="flex-1 py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-xs transition-colors shadow-lg shadow-brand-600/20 cursor-pointer"
+          >
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
+
 
 
 
