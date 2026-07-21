@@ -54,12 +54,15 @@ const DEFAULT_EXAMS = [
     title: 'Computer Science Fundamentals Exam',
     subjectId: DEFAULT_SUBJECT,
     durationMinutes: 30,
+    duration: 30,
     totalMarks: 3,
     passingMarks: 2,
     questions: DEFAULT_QUESTIONS,
+    maxAttempts: 3,
     startTime: new Date(Date.now() - 3600000).toISOString(),
     endTime: new Date(Date.now() + 86400000).toISOString(),
-    isActive: true
+    isActive: true,
+    createdBy: { name: 'Demo Teacher', email: 'teacher@quiznest.com' }
   }
 ];
 
@@ -116,6 +119,18 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       setStorageItem('qn_db_subjects', subjects);
       return newSub;
     }
+    if (method === 'PUT') {
+      const idToUpdate = cleanPath.split('/').pop();
+      const updated = subjects.map((s: any) => (s._id === idToUpdate ? { ...s, ...bodyData } : s));
+      setStorageItem('qn_db_subjects', updated);
+      return { _id: idToUpdate, ...bodyData };
+    }
+    if (method === 'DELETE') {
+      const idToDelete = cleanPath.split('/').pop();
+      const updated = subjects.filter((s: any) => s._id !== idToDelete);
+      setStorageItem('qn_db_subjects', updated);
+      return { message: 'Subject deleted' };
+    }
     return subjects;
   }
 
@@ -147,6 +162,12 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       setStorageItem('qn_db_questions', questions);
       return newQ;
     }
+    if (method === 'PUT') {
+      const idToUpdate = cleanPath.split('/').pop();
+      const updated = questions.map((q: any) => (q._id === idToUpdate ? { ...q, ...bodyData } : q));
+      setStorageItem('qn_db_questions', updated);
+      return { _id: idToUpdate, ...bodyData };
+    }
     if (method === 'DELETE') {
       const idToDelete = cleanPath.split('/').pop();
       const updated = questions.filter((q: any) => q._id !== idToDelete);
@@ -160,29 +181,98 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
   if (cleanPath.startsWith('/exams')) {
     const exams = getStorageItem('qn_db_exams', DEFAULT_EXAMS);
     if (method === 'POST') {
-      const newExam = { _id: `exam_${Date.now()}`, ...bodyData, subjectId: DEFAULT_SUBJECT, questions: DEFAULT_QUESTIONS, isActive: true };
+      const newExam = {
+        _id: `exam_${Date.now()}`,
+        ...bodyData,
+        subjectId: DEFAULT_SUBJECT,
+        questions: DEFAULT_QUESTIONS,
+        duration: bodyData?.durationMinutes || 30,
+        maxAttempts: bodyData?.maxAttempts || 3,
+        isActive: true,
+        createdBy: { name: 'Demo Teacher', email: 'teacher@quiznest.com' }
+      };
       exams.unshift(newExam);
       setStorageItem('qn_db_exams', exams);
       return newExam;
+    }
+    if (method === 'PUT') {
+      const idToUpdate = cleanPath.split('/').pop();
+      const updated = exams.map((e: any) => (e._id === idToUpdate ? { ...e, ...bodyData } : e));
+      setStorageItem('qn_db_exams', updated);
+      return { _id: idToUpdate, ...bodyData };
+    }
+    if (method === 'DELETE') {
+      const idToDelete = cleanPath.split('/').pop();
+      const updated = exams.filter((e: any) => e._id !== idToDelete);
+      setStorageItem('qn_db_exams', updated);
+      return { message: 'Exam deleted' };
     }
     return exams;
   }
 
   // Attempts & Submissions Fallback
   if (cleanPath.startsWith('/attempts') || cleanPath.startsWith('/submissions')) {
-    const attempts = getStorageItem('qn_db_attempts', []);
-    if (method === 'POST') {
-      const newAtt = { _id: `att_${Date.now()}`, ...bodyData, createdAt: new Date().toISOString() };
+    if (cleanPath.includes('/start')) {
+      return {
+        attemptId: `att_${Date.now()}`,
+        timeLeft: 1800,
+        questions: DEFAULT_QUESTIONS,
+        title: 'Computer Science Fundamentals Exam',
+        description: 'Core software, databases, and algorithms.'
+      };
+    }
+    if (cleanPath.includes('/submit') || (method === 'POST' && (cleanPath.includes('submissions') || cleanPath.includes('attempts')))) {
+      const attempts = getStorageItem('qn_db_attempts', []);
+      const newAtt = {
+        _id: `att_${Date.now()}`,
+        templateId: { _id: 'exam_101', title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
+        score: 3,
+        maxScore: 3,
+        warningsCount: 0,
+        tabSwitchesCount: 0,
+        completedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        ...bodyData
+      };
       attempts.unshift(newAtt);
       setStorageItem('qn_db_attempts', attempts);
       return newAtt;
     }
-    return attempts;
+    return getStorageItem('qn_db_attempts', [
+      {
+        _id: 'att_demo_1',
+        templateId: { _id: 'exam_101', title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
+        score: 3,
+        maxScore: 3,
+        warningsCount: 0,
+        tabSwitchesCount: 0,
+        createdAt: new Date(Date.now() - 86400000).toISOString()
+      }
+    ]);
   }
 
   // Users Fallback
   if (cleanPath.startsWith('/users')) {
-    return [];
+    const users = getStorageItem('qn_db_users', [
+      { _id: 'usr_student', name: 'Demo Student', email: 'student@quiznest.com', role: 'STUDENT', createdAt: new Date().toISOString() },
+      { _id: 'usr_teacher', name: 'Demo Teacher', email: 'teacher@quiznest.com', role: 'TEACHER', createdAt: new Date().toISOString() },
+      { _id: 'usr_admin', name: 'Demo Admin', email: 'admin@quiznest.com', role: 'ADMIN', createdAt: new Date().toISOString() }
+    ]);
+    if (method === 'PUT') {
+      const parts = cleanPath.split('/');
+      const userId = parts[2];
+      const updated = users.map((u: any) => (u._id === userId ? { ...u, role: bodyData?.role || u.role } : u));
+      setStorageItem('qn_db_users', updated);
+      const updatedUser = updated.find((u: any) => u._id === userId);
+      return { user: updatedUser };
+    }
+    if (method === 'DELETE') {
+      const idToDelete = cleanPath.split('/').pop();
+      const updated = users.filter((u: any) => u._id !== idToDelete);
+      setStorageItem('qn_db_users', updated);
+      return { message: 'User deleted' };
+    }
+    return users;
   }
 
   return {};
@@ -209,6 +299,10 @@ export const customFetch = async (path: string, options: any = {}) => {
     const response = await fetch(url, init);
     
     if (!response.ok) {
+      const fallbackData = getFallbackData(path, options.method || 'GET', bodyData);
+      if (fallbackData !== undefined && Object.keys(fallbackData).length > 0) {
+        return { data: fallbackData };
+      }
       let errorMsg = 'HTTP request failed';
       try {
         const errJson = await response.json();
@@ -223,12 +317,10 @@ export const customFetch = async (path: string, options: any = {}) => {
     const data = text ? JSON.parse(text) : {};
     return { data };
   } catch (error: any) {
-    // If backend server is unreachable (e.g. on Vercel static preview or local backend offline), fallback gracefully
-    if (error.message && (error.message.includes('fetch') || error.message.includes('NetworkError') || error.message.includes('Failed to fetch') || error.message.includes('HTTP request failed'))) {
-      const fallbackData = getFallbackData(path, options.method || 'GET', bodyData);
-      if (fallbackData !== undefined) {
-        return { data: fallbackData };
-      }
+    // Catch ANY network error, TypeError, CORS, or offline scenario and return fallback mock database data
+    const fallbackData = getFallbackData(path, options.method || 'GET', bodyData);
+    if (fallbackData !== undefined) {
+      return { data: fallbackData };
     }
     throw error;
   }
