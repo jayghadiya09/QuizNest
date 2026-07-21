@@ -66,6 +66,21 @@ const DEFAULT_EXAMS = [
   }
 ];
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return false;
+    const decodedJson = atob(payloadBase64);
+    const decoded = JSON.parse(decodedJson);
+    if (decoded.exp && typeof decoded.exp === 'number') {
+      return Date.now() >= decoded.exp * 1000;
+    }
+  } catch (e) {
+    // Ignore non-JWT token strings
+  }
+  return false;
+}
+
 // LocalStorage Persistence Helpers for Static / Unreachable Backend
 function getStorageItem<T>(key: string, defaultVal: T): T {
   try {
@@ -354,15 +369,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Initialize Auth from localStorage
+  // Initialize Auth from localStorage with JWT expiration safety
   useEffect(() => {
     try {
       const storedToken = localStorage.getItem('qn_token');
       const storedUser = localStorage.getItem('qn_user');
 
       if (storedToken && storedUser && storedUser !== 'undefined') {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
+        if (isTokenExpired(storedToken)) {
+          localStorage.removeItem('qn_token');
+          localStorage.removeItem('qn_user');
+          setToken(null);
+          setUser(null);
+        } else {
+          setUser(JSON.parse(storedUser));
+          setToken(storedToken);
+        }
       }
     } catch (e) {
       localStorage.removeItem('qn_token');

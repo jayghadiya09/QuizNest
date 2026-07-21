@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './components/ToastContext';
 import { Navbar } from './components/Navbar';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -22,7 +24,18 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 
 // Catch-all Default Redirector Component
 const DefaultRedirect: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="relative flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="mt-4 text-slate-400 font-medium tracking-wide">Initializing QuizNest...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -106,7 +119,6 @@ const AppContent: React.FC = () => {
             }
           />
 
-
           {/* Admin Protected Portals */}
           <Route
             path="/admin"
@@ -127,11 +139,15 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   );
 };
 
