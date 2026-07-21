@@ -31,11 +31,12 @@ export const startAttempt = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Exam template not found' });
     }
 
-    // Check attempts limit
-    const attemptCount = await Attempt.countDocuments({ studentId, templateId });
+    // Check attempts limit (Count COMPLETED attempts)
+    const attemptCount = await Attempt.countDocuments({ studentId, templateId, status: 'COMPLETED' });
     if (attemptCount >= template.maxAttempts) {
       return res.status(400).json({ message: `Maximum attempt limit of ${template.maxAttempts} reached for this examination.` });
     }
+
 
     // Check if there is an active in-progress attempt for this template
     let attempt = await Attempt.findOne({ studentId, templateId, status: 'IN_PROGRESS' });

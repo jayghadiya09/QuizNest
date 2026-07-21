@@ -155,8 +155,13 @@ export const StudentDashboard: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {templates.map((template) => {
-                const pastAttemptsCount = attempts.filter((att) => att.templateId?._id === template._id).length;
+                const pastAttemptsCount = attempts.filter((att: any) => {
+                  const attTempId = typeof att.templateId === 'object' ? att.templateId?._id : att.templateId;
+                  return attTempId === template._id && (att.status === 'COMPLETED' || att.completedAt || att.score !== undefined);
+                }).length;
                 const exceeded = pastAttemptsCount >= template.maxAttempts;
+
+
 
                 return (
                   <div

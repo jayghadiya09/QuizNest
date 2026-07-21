@@ -265,9 +265,16 @@ export const ExamPage: React.FC = () => {
 
   // 7. Session Warden monitoring listeners
   useEffect(() => {
-    if (!attemptId || result) return;
+    if (!attemptId || result || !mediaGranted) return;
+
+    // Grace period: wait 2.5 seconds after media setup confirmed before monitoring focus switches
+    let activeWarden = false;
+    const wardenTimer = setTimeout(() => {
+      activeWarden = true;
+    }, 2500);
 
     const handleVisibilityChange = () => {
+      if (!activeWarden) return;
       if (document.visibilityState === 'hidden') {
         reportCheatAlert('TAB_SWITCH');
       } else {
@@ -276,15 +283,17 @@ export const ExamPage: React.FC = () => {
     };
 
     const handleWindowBlur = () => {
+      if (!activeWarden) return;
       reportCheatAlert('WINDOW_BLUR');
     };
 
     const handleWindowFocus = () => {
+      if (!activeWarden) return;
       resumeFocus();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Intercept navigation, developers tool keys
+      if (!activeWarden) return;
       if (
         e.key === 'F5' ||
         e.key === 'F11' ||
@@ -300,9 +309,11 @@ export const ExamPage: React.FC = () => {
       }
     };
 
-    const preventDefault = (e: any) => e.preventDefault();
+    const preventDefault = (e: any) => {
+      if (activeWarden) e.preventDefault();
+    };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('focus', handleWindowFocus);
     document.addEventListener('keydown', handleKeyDown);
@@ -311,7 +322,8 @@ export const ExamPage: React.FC = () => {
     document.addEventListener('paste', preventDefault);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(wardenTimer);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('focus', handleWindowFocus);
       document.removeEventListener('keydown', handleKeyDown);
@@ -319,7 +331,8 @@ export const ExamPage: React.FC = () => {
       document.removeEventListener('copy', preventDefault);
       document.removeEventListener('paste', preventDefault);
     };
-  }, [attemptId, result]);
+  }, [attemptId, result, mediaGranted]);
+
 
   const triggerDisqualification = async (finalWarnings: number, finalTabSwitches: number) => {
     if (disqualifyingRef.current) return;
