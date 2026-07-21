@@ -32,9 +32,9 @@ export const startAttempt = async (req: AuthRequest, res: Response) => {
     }
 
     // Check attempts limit
-    const attemptCount = await Attempt.countDocuments({ studentId, templateId, status: 'COMPLETED' });
+    const attemptCount = await Attempt.countDocuments({ studentId, templateId });
     if (attemptCount >= template.maxAttempts) {
-      return res.status(400).json({ message: `Maximum attempt limit of ${template.maxAttempts} exceeded for this exam` });
+      return res.status(400).json({ message: `Maximum attempt limit of ${template.maxAttempts} reached for this examination.` });
     }
 
     // Check if there is an active in-progress attempt for this template

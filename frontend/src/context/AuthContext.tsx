@@ -286,12 +286,24 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
   // Attempts & Submissions Fallback
   if (cleanPath.startsWith('/attempts') || cleanPath.startsWith('/submissions')) {
     if (cleanPath.includes('/start')) {
+      const templateId = bodyData?.templateId || 'exam_101';
+      const attempts = getStorageItem('qn_db_attempts', []);
+      const exams = getStorageItem('qn_db_exams', DEFAULT_EXAMS);
+      const targetExam = exams.find((e: any) => e._id === templateId) || DEFAULT_EXAMS[0];
+
+      const pastAttempts = attempts.filter((att: any) => att.templateId?._id === templateId || att.templateId === templateId);
+      const maxAttempts = targetExam?.maxAttempts || 3;
+
+      if (pastAttempts.length >= maxAttempts) {
+        throw new Error(`Maximum attempt limit of ${maxAttempts} reached for this examination.`);
+      }
+
       return {
         attemptId: `att_${Date.now()}`,
-        timeLeft: 1800,
-        questions: DEFAULT_QUESTIONS,
-        title: 'Computer Science Fundamentals Exam',
-        description: 'Core software, databases, and algorithms.'
+        timeLeft: (targetExam?.duration || 30) * 60,
+        questions: targetExam?.questions || DEFAULT_QUESTIONS,
+        title: targetExam?.title || 'Computer Science Fundamentals Exam',
+        description: targetExam?.description || 'Core software, databases, and algorithms.'
       };
     }
     if (cleanPath.includes('/submit') || (method === 'POST' && (cleanPath.includes('submissions') || cleanPath.includes('attempts')))) {
