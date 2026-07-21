@@ -27,6 +27,8 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
-# Backup folders
+# Backup & Data folders
 backups/
+data/
+backend/data/
 .vercel
