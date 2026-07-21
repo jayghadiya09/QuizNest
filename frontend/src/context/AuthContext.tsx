@@ -317,14 +317,15 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const studentId = currentUser?.id || 'usr_student';
       const targetTempId = bodyData?.templateId || 'exam_101';
 
-      // Deduplicate: replace any previous attempt for this student and template so count is strictly 1 per test run
+      // Clean up IN_PROGRESS draft attempts for this student & template so each finished test adds +1 completed attempt
       const cleanedAttempts = attempts.filter((att: any) => {
         const attTempId = att.templateId?._id || att.templateId;
         const attStudId = att.studentId;
         const matchesTemplate = attTempId === targetTempId || attTempId === 'exam_101';
         const matchesStudent = attStudId === studentId || !attStudId || attStudId === 'usr_student';
-        return !(matchesTemplate && matchesStudent);
+        return !(matchesTemplate && matchesStudent && att.status === 'IN_PROGRESS');
       });
+
 
       const questionsList = getStorageItem('qn_db_questions', DEFAULT_QUESTIONS);
       const responsesList = bodyData?.responses || [];
