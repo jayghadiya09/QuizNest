@@ -308,32 +308,33 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
     }
     if (cleanPath.includes('/submit') || (method === 'POST' && (cleanPath.includes('submissions') || cleanPath.includes('attempts')))) {
       const attempts = getStorageItem('qn_db_attempts', []);
+      const currentUser = getStorageItem('qn_user', null);
+      const studentId = currentUser?.id || 'usr_student';
+
       const newAtt = {
         _id: `att_${Date.now()}`,
-        templateId: { _id: 'exam_101', title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
-        score: 3,
-        maxScore: 3,
-        warningsCount: 0,
-        tabSwitchesCount: 0,
+        studentId: studentId,
+        templateId: { _id: bodyData?.templateId || 'exam_101', title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
+        score: bodyData?.score ?? 3,
+        maxScore: bodyData?.maxScore ?? 3,
+        warningsCount: bodyData?.warningsCount || 0,
+        tabSwitchesCount: bodyData?.tabSwitchesCount || 0,
         completedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         ...bodyData
       };
       attempts.unshift(newAtt);
       setStorageItem('qn_db_attempts', attempts);
-      return newAtt;
+      return { attempt: newAtt, ...newAtt };
     }
-    return getStorageItem('qn_db_attempts', [
-      {
-        _id: 'att_demo_1',
-        templateId: { _id: 'exam_101', title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
-        score: 3,
-        maxScore: 3,
-        warningsCount: 0,
-        tabSwitchesCount: 0,
-        createdAt: new Date(Date.now() - 86400000).toISOString()
-      }
-    ]);
+
+    const allAttempts = getStorageItem('qn_db_attempts', []);
+    const currentUser = getStorageItem('qn_user', null);
+
+    if (currentUser && currentUser.role === 'STUDENT') {
+      return allAttempts.filter((att: any) => att.studentId === currentUser.id);
+    }
+    return allAttempts;
   }
 
   // Users Fallback
