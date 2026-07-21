@@ -72,25 +72,10 @@ export const StudentDashboard: React.FC = () => {
     }
   };
 
-  const handleResetExamAttempts = async (templateId: string) => {
-    try {
-      await api.delete(`/attempts/reset/${templateId}`);
-    } catch (err: any) {
-      const allAttempts = JSON.parse(localStorage.getItem('qn_db_attempts') || '[]');
-      const currentUser = JSON.parse(localStorage.getItem('qn_user') || '{}');
-      const filtered = allAttempts.filter((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        const attStudId = att.studentId;
-        return !(attTempId === templateId && (attStudId === currentUser?.id || !attStudId));
-      });
-      localStorage.setItem('qn_db_attempts', JSON.stringify(filtered));
-    }
-    fetchDashboardData();
-  };
-
   const handleStartExam = (template: ExamTemplate) => {
     setSelectedTemplate(template);
   };
+
 
   const confirmStartExam = () => {
     if (selectedTemplate) {
@@ -196,19 +181,11 @@ export const StudentDashboard: React.FC = () => {
                       </div>
                       
                       {exceeded ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                            <CheckCircle className="w-3 h-3" /> Max Attempted
-                          </span>
-                          <button
-                            onClick={() => handleResetExamAttempts(template._id)}
-                            className="text-[10px] font-semibold text-brand-400 hover:text-brand-300 underline px-1.5 py-0.5 rounded hover:bg-brand-500/10 transition-colors"
-                            title="Reset attempt limit for testing"
-                          >
-                            Reset
-                          </button>
-                        </div>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+                          <CheckCircle className="w-3.5 h-3.5 text-slate-400" /> Max Attempted ({pastAttemptsCount}/{template.maxAttempts})
+                        </span>
                       ) : (
+
                         <button
                           onClick={() => handleStartExam(template)}
                           className="flex items-center gap-1 text-[10px] font-bold bg-brand-600 hover:bg-brand-500 text-white px-3 py-1.5 rounded-lg shadow-md shadow-brand-600/10 transition-colors animate-pulse"

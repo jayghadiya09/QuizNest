@@ -324,12 +324,31 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
         return !(attTempId === targetTempId && attStudId === studentId && att.status === 'IN_PROGRESS');
       });
 
+      const questionsList = getStorageItem('qn_db_questions', DEFAULT_QUESTIONS);
+      const responsesList = bodyData?.responses || [];
+      
+      let earnedScore = 0;
+      let totalMaxScore = 0;
+
+      questionsList.forEach((q: any) => {
+        totalMaxScore += (q.marks || 1);
+        const resp = responsesList.find((r: any) => r.questionId === q._id);
+        if (resp && resp.answers && resp.answers.length > 0) {
+          const studentAns = resp.answers.map(String).sort();
+          const correctAns = (q.correctAnswers || ['0']).map(String).sort();
+          const isMatch = studentAns.length === correctAns.length && studentAns.every((val: string, idx: number) => val === correctAns[idx]);
+          if (isMatch) {
+            earnedScore += (q.marks || 1);
+          }
+        }
+      });
+
       const newAtt = {
         _id: `att_${Date.now()}`,
         studentId: studentId,
         templateId: { _id: targetTempId, title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
-        score: bodyData?.score ?? 3,
-        maxScore: bodyData?.maxScore ?? 3,
+        score: earnedScore,
+        maxScore: totalMaxScore > 0 ? totalMaxScore : 3,
         status: 'COMPLETED',
         warningsCount: bodyData?.warningsCount || 0,
         tabSwitchesCount: bodyData?.tabSwitchesCount || 0,
@@ -341,6 +360,7 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       setStorageItem('qn_db_attempts', cleanedAttempts);
       return { attempt: newAtt, ...newAtt };
     }
+
 
 
     if (method === 'DELETE' && cleanPath.includes('/reset/')) {
