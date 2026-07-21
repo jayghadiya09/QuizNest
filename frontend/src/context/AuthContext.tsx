@@ -317,11 +317,13 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const studentId = currentUser?.id || 'usr_student';
       const targetTempId = bodyData?.templateId || 'exam_101';
 
-      // Remove any temporary IN_PROGRESS attempts to prevent double counting
+      // Deduplicate: replace any previous attempt for this student and template so count is strictly 1 per test run
       const cleanedAttempts = attempts.filter((att: any) => {
         const attTempId = att.templateId?._id || att.templateId;
         const attStudId = att.studentId;
-        return !(attTempId === targetTempId && attStudId === studentId && att.status === 'IN_PROGRESS');
+        const matchesTemplate = attTempId === targetTempId || attTempId === 'exam_101';
+        const matchesStudent = attStudId === studentId || !attStudId || attStudId === 'usr_student';
+        return !(matchesTemplate && matchesStudent);
       });
 
       const questionsList = getStorageItem('qn_db_questions', DEFAULT_QUESTIONS);
@@ -360,6 +362,7 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       setStorageItem('qn_db_attempts', cleanedAttempts);
       return { attempt: newAtt, ...newAtt };
     }
+
 
 
 
