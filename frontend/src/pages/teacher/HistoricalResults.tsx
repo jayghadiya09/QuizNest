@@ -42,16 +42,17 @@ export const HistoricalResults: React.FC = () => {
     setError(null);
     try {
       const res = await api.get('/attempts/teacher');
-      setAttempts(res.data);
+      setAttempts(Array.isArray(res?.data) ? res.data : []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch test attempts results');
+      setAttempts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get unique list of exams to populate dropdown
-  const uniqueTemplates = Array.from(new Set(attempts.map((a) => a.templateId?.title))).filter(Boolean);
+  const safeAttempts = Array.isArray(attempts) ? attempts : [];
+  const uniqueTemplates = Array.from(new Set(safeAttempts.map((a) => a.templateId?.title))).filter(Boolean);
 
   const filteredAttempts = attempts.filter((att) => {
     const studentName = att.studentId?.name || '';

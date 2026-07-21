@@ -90,14 +90,22 @@ export const TeacherDashboard: React.FC = () => {
         api.get('/subjects'),
         api.get('/questions')
       ]);
-      setTemplates(templatesRes.data);
-      setSubjects(subjectsRes.data);
-      setQuestions(questionsRes.data);
-      if (subjectsRes.data.length > 0) {
-        setSelectedSubjectId(subjectsRes.data[0]._id);
+      const validTemplates = Array.isArray(templatesRes?.data) ? templatesRes.data : [];
+      const validSubjects = Array.isArray(subjectsRes?.data) ? subjectsRes.data : [];
+      const validQuestions = Array.isArray(questionsRes?.data) ? questionsRes.data : [];
+
+      setTemplates(validTemplates);
+      setSubjects(validSubjects);
+      setQuestions(validQuestions);
+
+      if (validSubjects.length > 0) {
+        setSelectedSubjectId(validSubjects[0]._id);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to retrieve dashboard records');
+      setTemplates([]);
+      setSubjects([]);
+      setQuestions([]);
     } finally {
       setLoading(false);
     }

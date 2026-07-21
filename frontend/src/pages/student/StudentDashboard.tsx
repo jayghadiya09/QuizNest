@@ -61,10 +61,12 @@ export const StudentDashboard: React.FC = () => {
         api.get('/exams'),
         api.get('/attempts/student')
       ]);
-      setTemplates(templatesRes.data);
-      setAttempts(attemptsRes.data);
+      setTemplates(Array.isArray(templatesRes?.data) ? templatesRes.data : []);
+      setAttempts(Array.isArray(attemptsRes?.data) ? attemptsRes.data : []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
+      setTemplates([]);
+      setAttempts([]);
     } finally {
       setLoading(false);
     }

@@ -91,16 +91,16 @@ export const LiveMonitor: React.FC = () => {
     });
 
     socketRef.current.on('active-students-list', (list: any[]) => {
-      // Map initial join list
-      const mapped = list.map((item) => ({
-        studentId: item.studentId,
-        studentName: item.studentName,
-        status: item.status as any,
+      const safeList = Array.isArray(list) ? list : [];
+      const mapped = safeList.map((item) => ({
+        studentId: item?.studentId || 'unknown',
+        studentName: item?.studentName || 'Student',
+        status: (item?.status || 'ACTIVE') as any,
         warningsCount: 0,
         tabSwitchesCount: 0
       }));
       setActiveStudents(mapped);
-      addLog('System', 'JOINED', `Active students list loaded: ${list.length} student(s) currently online.`);
+      addLog('System', 'JOINED', `Active students list loaded: ${safeList.length} student(s) currently online.`);
     });
 
     socketRef.current.on('student-status-changed', (session: StudentSession) => {

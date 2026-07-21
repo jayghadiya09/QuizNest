@@ -31,9 +31,10 @@ export const AdminDashboard: React.FC = () => {
     setError(null);
     try {
       const res = await api.get('/users');
-      setUsers(res.data);
+      setUsers(Array.isArray(res?.data) ? res.data : []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch registered users list');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
