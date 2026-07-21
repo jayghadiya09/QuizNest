@@ -7,27 +7,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Sleek violet/indigo brand palette
+        // User Requested Custom Palette
         brand: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
-          950: '#1e1b4b',
+          50: '#F3F9FD',
+          100: '#E5F1FB',
+          200: '#B8E1FF',
+          300: '#4CC2FF', // Accent Sky Cyan (#4CC2FF)
+          400: '#2899F5', // Secondary Azure (#2899F5)
+          500: '#0F6CBD', // Primary Deep Blue (#0F6CBD)
+          600: '#0C5697',
+          700: '#094171',
+          800: '#062B4B',
+          900: '#041C33',
+          950: '#0B131B',
         },
         slate: {
-          850: '#1e293b',
-          950: '#0f172a'
+          850: '#121E2A',
+          950: '#0B131B'
         }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',

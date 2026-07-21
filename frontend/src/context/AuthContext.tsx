@@ -109,22 +109,74 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
   const cleanPath = path.split('?')[0];
 
   // Auth Fallback
-  if (cleanPath === '/auth/login' || cleanPath === '/auth/register') {
-    const email = (bodyData?.email || 'user@quiznest.com').trim().toLowerCase();
-    let role: 'STUDENT' | 'TEACHER' | 'ADMIN' = bodyData?.role || 'STUDENT';
-    if (!bodyData?.role) {
-      if (email.includes('teacher')) role = 'TEACHER';
-      else if (email.includes('admin')) role = 'ADMIN';
+  if (cleanPath === '/auth/register') {
+    const email = (bodyData?.email || '').trim().toLowerCase();
+    const name = (bodyData?.name || 'User').trim();
+    const role: 'STUDENT' | 'TEACHER' | 'ADMIN' = bodyData?.role || 'STUDENT';
+    const password = bodyData?.password || 'password123';
+
+    const users = getStorageItem('qn_db_users', [
+      { _id: 'usr_student', name: 'Demo Student', email: 'student@quiznest.com', password: 'password123', role: 'STUDENT', createdAt: new Date().toISOString() },
+      { _id: 'usr_teacher', name: 'Demo Teacher', email: 'teacher@quiznest.com', password: 'password123', role: 'TEACHER', createdAt: new Date().toISOString() },
+      { _id: 'usr_admin', name: 'Demo Admin', email: 'admin@quiznest.com', password: 'password123', role: 'ADMIN', createdAt: new Date().toISOString() }
+    ]);
+
+    const existing = users.find((u: any) => u.email.toLowerCase() === email);
+    if (existing) {
+      throw new Error('User with this email already exists. Please login.');
     }
-    const rawName = bodyData?.name || (email.split('@')[0] ? email.split('@')[0] : 'Demo User');
-    const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    
-    const user: User = {
-      id: `usr_${Date.now()}`,
+
+    const newUser = {
+      _id: `usr_${Date.now()}`,
       name,
       email,
-      role
+      password,
+      role,
+      createdAt: new Date().toISOString()
     };
+
+    users.push(newUser);
+    setStorageItem('qn_db_users', users);
+
+    const user: User = {
+      id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role
+    };
+
+    return {
+      token: `demo_token_${Date.now()}`,
+      user
+    };
+  }
+
+  if (cleanPath === '/auth/login') {
+    const email = (bodyData?.email || '').trim().toLowerCase();
+    const password = bodyData?.password || '';
+
+    const users = getStorageItem('qn_db_users', [
+      { _id: 'usr_student', name: 'Demo Student', email: 'student@quiznest.com', password: 'password123', role: 'STUDENT', createdAt: new Date().toISOString() },
+      { _id: 'usr_teacher', name: 'Demo Teacher', email: 'teacher@quiznest.com', password: 'password123', role: 'TEACHER', createdAt: new Date().toISOString() },
+      { _id: 'usr_admin', name: 'Demo Admin', email: 'admin@quiznest.com', password: 'password123', role: 'ADMIN', createdAt: new Date().toISOString() }
+    ]);
+
+    const foundUser = users.find((u: any) => u.email.toLowerCase() === email);
+    if (!foundUser) {
+      throw new Error('User not found with this email. Please register first.');
+    }
+
+    if (foundUser.password && password && foundUser.password !== password) {
+      throw new Error('Invalid password. Please check your credentials.');
+    }
+
+    const user: User = {
+      id: foundUser._id,
+      name: foundUser.name,
+      email: foundUser.email,
+      role: (foundUser.role || 'STUDENT') as 'STUDENT' | 'TEACHER' | 'ADMIN'
+    };
+
     return {
       token: `demo_token_${Date.now()}`,
       user
