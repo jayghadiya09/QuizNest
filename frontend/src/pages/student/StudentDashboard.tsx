@@ -35,8 +35,11 @@ interface Attempt {
   warningsCount: number;
   tabSwitchesCount: number;
   cheatingDetected?: boolean;
+  status?: string;
+  completedAt?: string;
   createdAt: string;
 }
+
 
 export const StudentDashboard: React.FC = () => {
   const { api } = useAuth();
@@ -48,6 +51,8 @@ export const StudentDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedTemplate, setSelectedTemplate] = useState<ExamTemplate | null>(null);
+  const [showAllAttempts, setShowAllAttempts] = useState(false);
+
 
   useEffect(() => {
     fetchDashboardData();
@@ -208,69 +213,90 @@ export const StudentDashboard: React.FC = () => {
             <Award className="w-5 h-5 text-brand-400" /> Scoreboard History
           </h2>
 
-          {attempts.length === 0 ? (
-            <div className="glass-panel p-8 rounded-2xl text-center text-slate-500 border-dashed">
-              You haven't completed any attempts yet.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {attempts.map((att) => {
-                const isDisqualified = att.cheatingDetected === true;
-                const percentage = att.maxScore > 0 ? Math.round((att.score / att.maxScore) * 100) : 0;
-                const isPassing = !isDisqualified && percentage >= (att.templateId?.passingPercentage ?? 50);
+          {(() => {
+            const completedAttempts = attempts.filter((att) => att.status === 'COMPLETED' || att.completedAt || att.score !== undefined);
+            if (completedAttempts.length === 0) {
+              return (
+                <div className="glass-panel p-8 rounded-2xl text-center text-slate-500 border-dashed">
+                  You haven't completed any attempts yet.
+                </div>
+              );
+            }
+            const visibleAttempts = showAllAttempts ? completedAttempts : completedAttempts.slice(0, 3);
+            return (
+              <div className="space-y-4">
+                {visibleAttempts.map((att) => {
+                  const isDisqualified = att.cheatingDetected === true;
+                  const percentage = att.maxScore > 0 ? Math.round((att.score / att.maxScore) * 100) : 0;
+                  const isPassing = !isDisqualified && percentage >= (att.templateId?.passingPercentage ?? 50);
 
-                return (
-                  <div key={att._id} className={`glass-panel rounded-2xl p-4 space-y-3 ${isDisqualified ? 'border-rose-500/30 bg-rose-500/[0.02]' : ''}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-bold text-white text-xs line-clamp-1">{att.templateId?.title || 'Exam'}</h4>
-                        <span className="text-[9px] text-slate-500 flex items-center gap-1 mt-1 font-mono">
-                          <Calendar className="w-3 h-3" /> {new Date(att.createdAt).toLocaleDateString()}
+                  return (
+                    <div key={att._id} className={`glass-panel rounded-2xl p-4 space-y-3 ${isDisqualified ? 'border-rose-500/30 bg-rose-500/[0.02]' : ''}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-white text-xs line-clamp-1">{att.templateId?.title || 'Exam'}</h4>
+                          <span className="text-[9px] text-slate-500 flex items-center gap-1 mt-1 font-mono">
+                            <Calendar className="w-3 h-3" /> {new Date(att.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          {isDisqualified ? (
+                            <span className="inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase bg-rose-500/10 text-rose-500 border border-rose-500/25">
+                              Disqualified
+                            </span>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${isPassing ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                  {isPassing ? 'Pass' : 'Fail'}
+                                </span>
+                                <div className={`text-sm font-extrabold ${isPassing ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {att.score}/{att.maxScore}
+                                </div>
+                              </div>
+                              <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">
+                                Scored {percentage}% (Required: {att.templateId?.passingPercentage ?? 50}%)
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${isDisqualified ? 'bg-rose-500' : isPassing ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                          style={{ width: isDisqualified ? '100%' : `${percentage}%` }}
+                        ></div>
+                      </div>
+
+                      {/* Session warnings log feedback */}
+                      <div className="flex justify-between items-center text-[9px] bg-slate-950/50 p-2 rounded-lg border border-slate-900">
+                        <span className="text-slate-500">Security violations logged:</span>
+                        <span className={`font-bold flex items-center gap-1 ${isDisqualified ? 'text-rose-500 font-extrabold' : att.warningsCount > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
+                          <ShieldAlert className="w-3 h-3" />
+                          {att.warningsCount} warnings ({att.tabSwitchesCount} tab)
                         </span>
                       </div>
-                      <div className="text-right">
-                        {isDisqualified ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase bg-rose-500/10 text-rose-500 border border-rose-500/25">
-                            Disqualified
-                          </span>
-                        ) : (
-                          <>
-                            <div className="flex items-center gap-1.5 justify-end">
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${isPassing ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-                                {isPassing ? 'Pass' : 'Fail'}
-                              </span>
-                              <div className={`text-sm font-extrabold ${isPassing ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {att.score}/{att.maxScore}
-                              </div>
-                            </div>
-                            <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">
-                              Scored {percentage}% (Required: {att.templateId?.passingPercentage ?? 50}%)
-                            </div>
-                          </>
-                        )}
-                      </div>
                     </div>
+                  );
+                })}
 
-                    <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${isDisqualified ? 'bg-rose-500' : isPassing ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                        style={{ width: isDisqualified ? '100%' : `${percentage}%` }}
-                      ></div>
-                    </div>
+                {completedAttempts.length > 3 && (
+                  <button
+                    onClick={() => setShowAllAttempts(!showAllAttempts)}
+                    className="w-full py-2 px-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 text-brand-400 hover:text-brand-300 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer mt-2"
+                  >
+                    {showAllAttempts ? (
+                      <>Show Less ↑</>
+                    ) : (
+                      <>Show More ({completedAttempts.length - 3} more) ↓</>
+                    )}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
-                    {/* Session warnings log feedback */}
-                    <div className="flex justify-between items-center text-[9px] bg-slate-950/50 p-2 rounded-lg border border-slate-900">
-                      <span className="text-slate-500">Security violations logged:</span>
-                      <span className={`font-bold flex items-center gap-1 ${isDisqualified ? 'text-rose-500 font-extrabold' : att.warningsCount > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
-                        <ShieldAlert className="w-3 h-3" />
-                        {att.warningsCount} warnings ({att.tabSwitchesCount} tab)
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
 
