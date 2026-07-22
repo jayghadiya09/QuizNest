@@ -142,8 +142,9 @@ export const StudentDashboard: React.FC = () => {
               {templates.map((template) => {
                 const pastAttemptsCount = attempts.filter((att: any) => {
                   const attTempId = typeof att.templateId === 'object' ? att.templateId?._id : att.templateId;
-                  return attTempId === template._id && (att.status === 'COMPLETED' || att.completedAt || att.score !== undefined);
+                  return attTempId === template._id;
                 }).length;
+
                 const exceeded = pastAttemptsCount >= template.maxAttempts;
 
 
@@ -207,13 +208,16 @@ export const StudentDashboard: React.FC = () => {
             <Award className="w-5 h-5 text-brand-400" /> Scoreboard History
           </h2>
 
-          {attempts.length === 0 ? (
+          {attempts.filter((att: any) => att.status === 'COMPLETED' || att.completedAt || att.score !== undefined).length === 0 ? (
             <div className="glass-panel p-8 rounded-2xl text-center text-slate-500 border-dashed">
               You haven't completed any attempts yet.
             </div>
           ) : (
             <div className="space-y-4">
-              {attempts.map((att) => {
+              {attempts
+                .filter((att: any) => att.status === 'COMPLETED' || att.completedAt || att.score !== undefined)
+                .map((att) => {
+
                 const isDisqualified = att.cheatingDetected === true;
                 const percentage = att.maxScore > 0 ? Math.round((att.score / att.maxScore) * 100) : 0;
                 const isPassing = !isDisqualified && percentage >= (att.templateId?.passingPercentage ?? 50);
