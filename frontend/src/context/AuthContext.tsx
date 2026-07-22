@@ -293,6 +293,24 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const currentUser = getStorageItem('qn_user', null);
       const studentId = currentUser?.id || 'usr_student';
 
+      const activeAttempt = attempts.find((att: any) => {
+        const attTempId = att.templateId?._id || att.templateId;
+        const attStudId = att.studentId;
+        const matchesTemp = attTempId === templateId || attTempId === 'exam_101';
+        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
+        return matchesTemp && matchesStud && att.status === 'IN_PROGRESS';
+      });
+
+      if (activeAttempt) {
+        return {
+          attemptId: activeAttempt._id,
+          timeLeft: (targetExam?.duration || 30) * 60,
+          questions: targetExam?.questions || DEFAULT_QUESTIONS,
+          title: targetExam?.title || 'Computer Science Fundamentals Exam',
+          description: targetExam?.description || 'Core software, databases, and algorithms.'
+        };
+      }
+
       const pastAttempts = attempts.filter((att: any) => {
         const attTempId = att.templateId?._id || att.templateId;
         const attStudId = att.studentId;
@@ -306,6 +324,7 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       if (pastAttempts.length >= maxAttempts) {
         throw new Error(`Maximum attempt limit of ${maxAttempts} reached for this examination.`);
       }
+
 
       const newAttId = `att_${Date.now()}`;
       const newAttemptRecord = {
