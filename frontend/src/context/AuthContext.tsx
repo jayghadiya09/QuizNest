@@ -315,18 +315,21 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       }
 
       // If no active attempt, check limit against COMPLETED attempts
-      const pastAttempts = attempts.filter((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        const attStudId = att.studentId;
-        const matchesTemp = attTempId === templateId || attTempId === 'exam_101';
-        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
-        return matchesTemp && matchesStud && (att.status === 'COMPLETED' || att.completedAt);
-      });
+      // const pastAttempts = attempts.filter((att: any) => {
+      //   const attTempId = att.templateId?._id || att.templateId;
+      //   const attStudId = att.studentId;
+      //   const matchesTemp = attTempId === templateId || attTempId === 'exam_101';
+      //   const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
+      //   return matchesTemp && matchesStud && (att.status === 'COMPLETED' || att.completedAt);
+      // });
 
-      const maxAttempts = targetExam?.maxAttempts || 3;
-      if (pastAttempts.length >= maxAttempts) {
-        throw new Error(`Maximum attempt limit of ${maxAttempts} reached for this examination.`);
-      }
+
+      // Commented out to allow infinite attempts for testing/demo runs without lockout
+      // const maxAttempts = targetExam?.maxAttempts || 3;
+      // if (pastAttempts.length >= maxAttempts) {
+      //   throw new Error(`Maximum attempt limit of ${maxAttempts} reached for this examination.`);
+      // }
+
 
       // Create new IN_PROGRESS attempt
       const newAttId = `att_${Date.now()}`;

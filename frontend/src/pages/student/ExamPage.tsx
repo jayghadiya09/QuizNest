@@ -680,37 +680,11 @@ export const ExamPage: React.FC = () => {
   }
 
   if (error || questions.length === 0) {
-    const isLimitReached = error?.toLowerCase().includes('attempt limit') || error?.toLowerCase().includes('maximum attempt');
     return (
       <div className="max-w-md mx-auto mt-12 p-6 glass-panel rounded-2xl text-center space-y-4">
         <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
-        <h2 className="text-xl font-bold text-white">
-          {isLimitReached ? 'Maximum Attempts Reached' : 'Access Violation / Error'}
-        </h2>
+        <h2 className="text-xl font-bold text-white">Access Violation / Error</h2>
         <p className="text-xs text-slate-400">{error || 'Could not launch exam session.'}</p>
-        
-        {isLimitReached && (
-          <div className="space-y-3 mt-2">
-            <p className="text-[11px] text-slate-500 bg-slate-900/60 p-3 rounded-xl border border-slate-800 leading-relaxed">
-              💡 If you require an additional attempt, please request your instructor to reset attempts or increase the limit from the Teacher Dashboard.
-            </p>
-            <button
-              onClick={async () => {
-                try {
-                  await api.delete(`/attempts/reset/${templateId}`);
-                } catch (e) {
-                  // Ignore local fallback errors
-                }
-                alert('Attempts reset successfully! Re-starting exam session...');
-                window.location.reload();
-              }}
-              className="text-[10px] text-brand-400 hover:text-brand-300 font-bold underline cursor-pointer mt-1"
-            >
-              Reset My Attempts (Testing Mode)
-            </button>
-          </div>
-        )}
-
         <button
           onClick={() => navigate('/student')}
           className="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-brand-600/20"
@@ -720,6 +694,7 @@ export const ExamPage: React.FC = () => {
       </div>
     );
   }
+
 
 
 
