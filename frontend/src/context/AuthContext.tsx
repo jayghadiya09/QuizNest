@@ -463,8 +463,18 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
 
 // Custom Fetch API wrapper mimicking Axios signatures
 export const customFetch = async (path: string, options: any = {}) => {
-  const url = `${baseURL}${path}`;
   const { bodyData, ...restOptions } = options;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  // If not localhost, go straight to the offline localStorage engine for instant responses on Vercel!
+  if (!isLocalhost) {
+    const fallbackData = getFallbackData(path, options.method || 'GET', bodyData);
+    if (fallbackData !== undefined) {
+      return { data: fallbackData };
+    }
+  }
+
+  const url = `${baseURL}${path}`;
 
   const init: RequestInit = {
     ...restOptions,
@@ -477,6 +487,7 @@ export const customFetch = async (path: string, options: any = {}) => {
   if (bodyData !== undefined) {
     init.body = JSON.stringify(bodyData);
   }
+
 
   try {
     const response = await fetch(url, init);
