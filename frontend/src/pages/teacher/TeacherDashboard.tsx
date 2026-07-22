@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, BookOpen, Clock, Activity, Trash2, Settings, Eye, Upload, Edit } from 'lucide-react';
 
-
-
 interface Subject {
   _id: string;
   name: string;
@@ -234,10 +232,7 @@ export const TeacherDashboard: React.FC = () => {
     setShowCreateModal(true);
   };
 
-
   const handleAddSubject = async () => {
-
-
     if (!subjectInputName.trim()) return;
     try {
       const res = await api.post('/subjects', { name: subjectInputName.trim() });
@@ -452,8 +447,6 @@ export const TeacherDashboard: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleStartEdit(t)}
-
-
                       className="p-1.5 rounded-lg bg-brand-550/10 border border-transparent hover:border-brand-500/25 text-brand-400 hover:bg-brand-500/20 transition-all cursor-pointer"
                       title="Edit Template"
                     >

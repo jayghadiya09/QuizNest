@@ -290,59 +290,21 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const attempts = getStorageItem('qn_db_attempts', []);
       const exams = getStorageItem('qn_db_exams', DEFAULT_EXAMS);
       const targetExam = exams.find((e: any) => e._id === templateId) || DEFAULT_EXAMS[0];
+
       const currentUser = getStorageItem('qn_user', null);
-      const studentId = currentUser?.id || 'usr_student';
-
-      const activeAttempt = attempts.find((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        const attStudId = att.studentId;
-        const matchesTemp = attTempId === templateId || attTempId === 'exam_101';
-        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
-        return matchesTemp && matchesStud && att.status === 'IN_PROGRESS';
-      });
-
-      if (activeAttempt) {
-        return {
-          attemptId: activeAttempt._id,
-          timeLeft: (targetExam?.duration || 30) * 60,
-          questions: targetExam?.questions || DEFAULT_QUESTIONS,
-          title: targetExam?.title || 'Computer Science Fundamentals Exam',
-          description: targetExam?.description || 'Core software, databases, and algorithms.'
-        };
-      }
-
-      const pastAttempts = attempts.filter((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        const attStudId = att.studentId;
-        const matchesTemp = attTempId === templateId || attTempId === 'exam_101';
-        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
-        return matchesTemp && matchesStud;
-      });
-
+      const pastAttempts = attempts.filter((att: any) => 
+        (att.templateId?._id === templateId || att.templateId === templateId) &&
+        (att.studentId === currentUser?.id || !att.studentId) &&
+        (att.status === 'COMPLETED' || att.completedAt || att.score !== undefined)
+      );
       const maxAttempts = targetExam?.maxAttempts || 3;
 
       if (pastAttempts.length >= maxAttempts) {
         throw new Error(`Maximum attempt limit of ${maxAttempts} reached for this examination.`);
       }
 
-
-      const newAttId = `att_${Date.now()}`;
-      const newAttemptRecord = {
-        _id: newAttId,
-        studentId: studentId,
-        templateId: { _id: templateId, title: targetExam?.title || 'Computer Science Fundamentals Exam', duration: targetExam?.duration || 30, passingPercentage: 50 },
-        score: 0,
-        maxScore: 3,
-        status: 'IN_PROGRESS',
-        startedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      };
-
-      attempts.unshift(newAttemptRecord);
-      setStorageItem('qn_db_attempts', attempts);
-
       return {
-        attemptId: newAttId,
+        attemptId: `att_${Date.now()}`,
         timeLeft: (targetExam?.duration || 30) * 60,
         questions: targetExam?.questions || DEFAULT_QUESTIONS,
         title: targetExam?.title || 'Computer Science Fundamentals Exam',
@@ -354,6 +316,13 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
       const currentUser = getStorageItem('qn_user', null);
       const studentId = currentUser?.id || 'usr_student';
       const targetTempId = bodyData?.templateId || 'exam_101';
+
+      // Remove any temporary IN_PROGRESS attempts to prevent double counting
+      const cleanedAttempts = attempts.filter((att: any) => {
+        const attTempId = att.templateId?._id || att.templateId;
+        const attStudId = att.studentId;
+        return !(attTempId === targetTempId && attStudId === studentId && att.status === 'IN_PROGRESS');
+      });
 
       const questionsList = getStorageItem('qn_db_questions', DEFAULT_QUESTIONS);
       const responsesList = bodyData?.responses || [];
@@ -374,17 +343,8 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
         }
       });
 
-      // Update existing IN_PROGRESS attempt or replace latest
-      let existingIndex = attempts.findIndex((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        const attStudId = att.studentId;
-        const matchesTemp = attTempId === targetTempId || attTempId === 'exam_101';
-        const matchesStud = attStudId === studentId || !attStudId || attStudId === 'usr_student';
-        return matchesTemp && matchesStud && att.status === 'IN_PROGRESS';
-      });
-
-      const updatedAttempt = {
-        _id: existingIndex >= 0 ? attempts[existingIndex]._id : `att_${Date.now()}`,
+      const newAtt = {
+        _id: `att_${Date.now()}`,
         studentId: studentId,
         templateId: { _id: targetTempId, title: 'Computer Science Fundamentals Exam', duration: 30, passingPercentage: 50 },
         score: earnedScore,
@@ -393,21 +353,13 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
         warningsCount: bodyData?.warningsCount || 0,
         tabSwitchesCount: bodyData?.tabSwitchesCount || 0,
         completedAt: new Date().toISOString(),
-        createdAt: existingIndex >= 0 ? attempts[existingIndex].createdAt : new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         ...bodyData
       };
-
-      if (existingIndex >= 0) {
-        attempts[existingIndex] = updatedAttempt;
-      } else {
-        attempts.unshift(updatedAttempt);
-      }
-
-      setStorageItem('qn_db_attempts', attempts);
-      return { attempt: updatedAttempt, ...updatedAttempt };
+      cleanedAttempts.unshift(newAtt);
+      setStorageItem('qn_db_attempts', cleanedAttempts);
+      return { attempt: newAtt, ...newAtt };
     }
-
-
 
 
 
@@ -463,18 +415,8 @@ function getFallbackData(path: string, method: string, bodyData: any): any {
 
 // Custom Fetch API wrapper mimicking Axios signatures
 export const customFetch = async (path: string, options: any = {}) => {
-  const { bodyData, ...restOptions } = options;
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-  // If not localhost, go straight to the offline localStorage engine for instant responses on Vercel!
-  if (!isLocalhost) {
-    const fallbackData = getFallbackData(path, options.method || 'GET', bodyData);
-    if (fallbackData !== undefined) {
-      return { data: fallbackData };
-    }
-  }
-
   const url = `${baseURL}${path}`;
+  const { bodyData, ...restOptions } = options;
 
   const init: RequestInit = {
     ...restOptions,
@@ -487,7 +429,6 @@ export const customFetch = async (path: string, options: any = {}) => {
   if (bodyData !== undefined) {
     init.body = JSON.stringify(bodyData);
   }
-
 
   try {
     const response = await fetch(url, init);
