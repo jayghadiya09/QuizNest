@@ -7,7 +7,8 @@ export interface User {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
 }
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const baseURL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5001' : '/api');
+
 
 const getHeaders = () => {
   const token = localStorage.getItem('qn_token');
