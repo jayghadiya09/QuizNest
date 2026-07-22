@@ -694,10 +694,27 @@ export const ExamPage: React.FC = () => {
             {error || 'Could not launch exam session.'}
           </p>
           {isLimitReached && (
-            <p className="text-[11px] text-slate-500 mt-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-              💡 If you require an additional attempt, please request your instructor to reset attempts or increase the limit from the Teacher Dashboard.
-            </p>
+            <div className="space-y-3 mt-2">
+              <p className="text-[11px] text-slate-500 bg-slate-900/60 p-3 rounded-xl border border-slate-800 leading-relaxed">
+                💡 If you require an additional attempt, please request your instructor to reset attempts or increase the limit from the Teacher Dashboard.
+              </p>
+              <button
+                onClick={async () => {
+                  try {
+                    await api.delete(`/attempts/reset/${templateId}`);
+                  } catch (e) {
+                    // Ignore local fallback errors
+                  }
+                  alert('Attempts reset successfully! Re-starting exam session...');
+                  window.location.reload();
+                }}
+                className="text-[10px] text-brand-400 hover:text-brand-300 font-bold underline cursor-pointer mt-1"
+              >
+                Reset My Attempts (Testing Mode)
+              </button>
+            </div>
           )}
+
         </div>
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
