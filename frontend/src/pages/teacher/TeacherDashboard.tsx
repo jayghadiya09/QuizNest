@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, BookOpen, Clock, Activity, Trash2, Settings, Eye, Upload, Edit, RotateCcw } from 'lucide-react';
+import { Plus, BookOpen, Clock, Activity, Trash2, Settings, Eye, Upload, Edit } from 'lucide-react';
+
 
 
 interface Subject {
@@ -233,27 +234,9 @@ export const TeacherDashboard: React.FC = () => {
     setShowCreateModal(true);
   };
 
-  const handleResetAttemptsForExam = async (templateId: string, examTitle: string) => {
-    if (!window.confirm(`Are you sure you want to reset all student attempt records for "${examTitle}"? This will allow students to retake the exam.`)) {
-      return;
-    }
-    try {
-      await api.delete(`/attempts/reset/${templateId}`);
-      alert(`All student attempts for "${examTitle}" have been reset successfully.`);
-      fetchDashboardData();
-    } catch (err: any) {
-      const allAttempts = JSON.parse(localStorage.getItem('qn_db_attempts') || '[]');
-      const filtered = allAttempts.filter((att: any) => {
-        const attTempId = att.templateId?._id || att.templateId;
-        return attTempId !== templateId;
-      });
-      localStorage.setItem('qn_db_attempts', JSON.stringify(filtered));
-      alert(`All student attempts for "${examTitle}" have been reset successfully.`);
-      fetchDashboardData();
-    }
-  };
 
   const handleAddSubject = async () => {
+
 
     if (!subjectInputName.trim()) return;
     try {
@@ -468,14 +451,8 @@ export const TeacherDashboard: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleResetAttemptsForExam(t._id, t.title)}
-                      className="p-1.5 rounded-lg bg-amber-500/10 border border-transparent hover:border-amber-500/25 text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
-                      title="Reset All Student Attempts for this Exam"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                    <button
                       onClick={() => handleStartEdit(t)}
+
 
                       className="p-1.5 rounded-lg bg-brand-550/10 border border-transparent hover:border-brand-500/25 text-brand-400 hover:bg-brand-500/20 transition-all cursor-pointer"
                       title="Edit Template"
